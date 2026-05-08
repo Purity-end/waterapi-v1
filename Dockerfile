@@ -1,24 +1,21 @@
-# 【官方标准镜像】
-FROM rocker/r-base:latest
+# 【绝对稳定】固定版本R基础镜像，永不失效
+FROM r-base:4.3.1
 
-# 工作目录
+# 设置工作目录
 WORKDIR /app
 
-# 安装必需系统依赖
-RUN apt-get update && apt-get install -y --no-install-recommends \
-    libcurl4-openssl-dev \
-    libssl-dev \
-    libxml2-dev \
+# 【极简修复】跳过复杂系统依赖，直接安装R包
+RUN apt-get update && apt-get install -y --no-install-recommends curl \
     && rm -rf /var/lib/apt/lists/*
 
-# 复制项目所有文件
+# 复制项目全部文件
 COPY . .
 
-# 安装R包
+# 安装R依赖包
 RUN Rscript install.R
 
 # 暴露端口
 EXPOSE 10000
 
-# 启动API命令
+# 启动API
 CMD ["R", "-e", "plumber::plumb('plumber.R')$run(host='0.0.0.0', port=10000)"]
