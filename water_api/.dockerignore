@@ -1,7 +1,0 @@
-.git
-.github
-node_modules
-*.log
-.Rproj.user
-.Rhistory
-.RData
