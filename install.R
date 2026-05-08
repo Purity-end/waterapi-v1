@@ -1,2 +1,6 @@
 # install.R
-install.packages(c("plumber", "randomForest", "xgboost", "glmnet", "dplyr"), repos = "https://cran.rstudio.com/")
+options(repos = c(CRAN = "https://mirrors.tuna.tsinghua.edu.cn/CRAN/"))
+install.packages("plumber", quiet = TRUE)
+install.packages("randomForest", quiet = TRUE)
+install.packages("xgboost", quiet = TRUE)
+install.packages("glmnet", quiet = TRUE)
