@@ -1,17 +1,20 @@
-# 100%稳定官方R镜像
+# 官方稳定R镜像
 FROM r-base:4.3.1
 
 WORKDIR /app
 
-# 仅安装必要依赖，不报错
+# 补齐所有必需的系统依赖
 RUN apt-get update && apt-get install -y --no-install-recommends \
-    curl \
+    libsodium-dev \
+    libcurl4-openssl-dev \
+    libssl-dev \
+    libxml2-dev \
     && rm -rf /var/lib/apt/lists/*
 
-# 【核心】直接在Dockerfile安装R包，永不失败！
-RUN R -e "install.packages(c('plumber','randomForest','xgboost','glmnet'), repos='https://mirrors.tuna.tsinghua.edu.cn/CRAN/')"
+# 安装R包（清华源，极速稳定）
+RUN R -e "install.packages(c('plumber','randomForest','xgboost','glmnet','dplyr'), repos='https://mirrors.tuna.tsinghua.edu.cn/CRAN/')"
 
-# 复制所有代码
+# 复制项目代码
 COPY . .
 
 # 启动API
