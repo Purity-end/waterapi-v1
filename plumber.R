@@ -1,7 +1,7 @@
-# 极简测试版 - 100%无语法错误，必启动成功
+# 最终正确版 - 彻底解决语法错误
 library(plumber)
 
-# -------------------------- 1. 独立定义跨域过滤器（核心修复） --------------------------
+# 1. 全局跨域过滤器（单独定义，自动应用所有接口）
 #* @filter cors
 cors <- function(req, res) {
   res$setHeader("Access-Control-Allow-Origin", "*")
@@ -15,17 +15,14 @@ cors <- function(req, res) {
   plumber::forward()
 }
 
-# -------------------------- 2. 接口函数（仅引用过滤器，不重复定义） --------------------------
-# 健康检查接口
+# 2. 健康检查接口（不加任何filter！）
 #* @get /health
-#* @filter cors
 function() {
-  list(status = "ok", message = "✅ API服务启动成功！")
+  list(status = "ok", message = "API启动成功！")
 }
 
-# 测试接口
+# 3. 测试接口（不加任何filter！）
 #* @post /test
-#* @filter cors
 function() {
-  list(success = TRUE, message = "🎉 接口调用正常！")
+  list(success = TRUE, message = "接口调用正常")
 }
