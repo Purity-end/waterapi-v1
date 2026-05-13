@@ -23,17 +23,17 @@ cors <- function(req, res) {
 cat("正在加载水质预测模型...\n")
 model_dir <- "models"
 
-# 加载模型（容错处理）
 tryCatch({
-  model_cod  <- readRDS(file.path(model_dir, "COD_预测模型.rds"))
-  model_nh4  <- readRDS(file.path(model_dir, "氨氮_预测模型.rds"))
-  model_chl  <- readRDS(file.path(model_dir, "叶绿素_预测模型.rds"))
+  # 🔥 关键修复：使用 <<- 全局赋值，让接口可以访问到模型
+  model_cod <<- readRDS(file.path(model_dir, "COD_预测模型.rds"))
+  model_nh4 <<- readRDS(file.path(model_dir, "氨氮_预测模型.rds"))
+  model_chl <<- readRDS(file.path(model_dir, "叶绿素_预测模型.rds"))
   cat("✅ 所有模型加载成功！API准备就绪\n")
 }, error = function(e) {
   cat("❌ 模型加载失败：", e$message, "\n")
-  model_cod <- NULL
-  model_nh4 <- NULL
-  model_chl <- NULL
+  model_cod <<- NULL
+  model_nh4 <<- NULL
+  model_chl <<- NULL
 })
 
 # ===================== 【核心】适配模型预测函数 =====================
