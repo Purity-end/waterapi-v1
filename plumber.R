@@ -93,3 +93,58 @@ function(req) {
   result <- safe_predict(model_chl, req$body)
   list(success = TRUE, prediction = result, indicator = "叶绿素")
 }
+
+# ===================== 自动获取NASA降水数据接口（无密钥+免费） =====================
+# 加载请求包
+if(!require("httr")) install.packages("httr", quiet=TRUE)
+library(httr)
+if(!require("jsonlite")) install.packages("jsonlite", quiet=TRUE)
+library(jsonlite)
+
+#* @post /get/nasa/rain
+#* @param lat:float 纬度
+#* @param lon:float 经度
+#* @param predict_date:date 预测日期 (YYYY-MM-DD)
+function(lat, lon, predict_date){
+  tryCatch({
+    # 计算需要的日期范围：预测日期前14天（覆盖模型所有lag降水）
+    end_date <- as.Date(predict_date)
+    start_date <- end_date - 14
+    # NASA API格式：YYYYMMDD
+    start_str <- gsub("-", "", start_date)
+    end_str <- gsub("-", "", end_date)
+    
+    # 调用NASA官方免费API（无密钥、永久可用）
+    url <- "https://power.larc.nasa.gov/api/temporal/daily/point"
+    res <- GET(url, query = list(
+      parameters = "PRECTOTCORR",
+      community = "AG",
+      longitude = lon,
+      latitude = lat,
+      start = start_str,
+      end = end_str,
+      format = "json"
+    ))
+    
+    data <- fromJSON(rawToChar(res$content))
+    rain_data <- data$properties$parameter$PRECTOTCORR
+    date_seq <- rev(seq(end_date, by = "-1 day", length.out = 14))
+    
+    # 生成模型需要的【所有降水滞后特征】
+    lag_values <- as.numeric(rain_data[as.character(date_seq)])
+    result <- list(
+      PRECTOTC_lag1 = lag_values[1],
+      PRECTOTC_lag2 = lag_values[2],
+      PRECTOTC_lag3 = lag_values[3],
+      PRECTOTC_lag4 = lag_values[4],
+      PRECTOTC_lag5 = lag_values[5],
+      PRECTOTC_lag6 = lag_values[6],
+      PRECTOTC_lag7 = lag_values[7],
+      PRECTOTC_lag10 = lag_values[10],
+      PRECTOTC_lag14 = lag_values[14]
+    )
+    return(list(success = TRUE, data = result))
+  }, error = function(e){
+    return(list(success = FALSE, error = e$message))
+  })
+}
