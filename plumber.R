@@ -94,8 +94,8 @@ function(req) {
   list(success = TRUE, prediction = result, indicator = "叶绿素")
 }
 
-# ===================== 自动获取NASA降水数据接口（无密钥+免费） =====================
-# 加载请求包
+# ===================== 自动获取NASA降水数据接口 =====================
+# 加载依赖包
 if(!require("httr")) install.packages("httr", quiet=TRUE)
 library(httr)
 if(!require("jsonlite")) install.packages("jsonlite", quiet=TRUE)
@@ -107,14 +107,16 @@ library(jsonlite)
 #* @param predict_date:date 预测日期 (YYYY-MM-DD)
 function(lat, lon, predict_date){
   tryCatch({
-    # 计算需要的日期范围：预测日期前14天（覆盖模型所有lag降水）
+    # 1. 计算日期范围：预测日期前14天（模型所需降水滞后数据）
     end_date <- as.Date(predict_date)
     start_date <- end_date - 14
-    # NASA API格式：YYYYMMDD
+    date_seq <- seq(start_date, end_date, by = "1 day")
+    
+    # 2. 转换为NASA API要求的日期格式 (YYYYMMDD)
     start_str <- gsub("-", "", start_date)
     end_str <- gsub("-", "", end_date)
     
-    # 调用NASA官方免费API（无密钥、永久可用）
+    # 3. 调用NASA官方免费API（无密钥、永久可用）
     url <- "https://power.larc.nasa.gov/api/temporal/daily/point"
     res <- GET(url, query = list(
       parameters = "PRECTOTCORR",
@@ -126,23 +128,31 @@ function(lat, lon, predict_date){
       format = "json"
     ))
     
+    # 4. 解析数据（修复格式解析bug）
     data <- fromJSON(rawToChar(res$content))
-    rain_data <- data$properties$parameter$PRECTOTCORR
-    date_seq <- rev(seq(end_date, by = "-1 day", length.out = 14))
+    rain_raw <- data$properties$parameter$PRECTOTCORR
+    rain_df <- data.frame(
+      date = as.Date(names(rain_raw), format = "%Y%m%d"),
+      precip = as.numeric(unlist(rain_raw))
+    )
     
-    # 生成模型需要的【所有降水滞后特征】
-    lag_values <- as.numeric(rain_data[as.character(date_seq)])
+    # 5. 按日期匹配，提取14天降水（倒序生成lag特征）
+    rain_ordered <- rain_df[match(rev(date_seq), rain_df$date), ]
+    lag_values <- rain_ordered$precip
+    
+    # 6. 生成模型需要的所有降水滞后特征（修复数值类型）
     result <- list(
-      PRECTOTC_lag1 = lag_values[1],
-      PRECTOTC_lag2 = lag_values[2],
-      PRECTOTC_lag3 = lag_values[3],
-      PRECTOTC_lag4 = lag_values[4],
-      PRECTOTC_lag5 = lag_values[5],
-      PRECTOTC_lag6 = lag_values[6],
-      PRECTOTC_lag7 = lag_values[7],
+      PRECTOTC_lag1  = lag_values[1],
+      PRECTOTC_lag2  = lag_values[2],
+      PRECTOTC_lag3  = lag_values[3],
+      PRECTOTC_lag4  = lag_values[4],
+      PRECTOTC_lag5  = lag_values[5],
+      PRECTOTC_lag6  = lag_values[6],
+      PRECTOTC_lag7  = lag_values[7],
       PRECTOTC_lag10 = lag_values[10],
       PRECTOTC_lag14 = lag_values[14]
     )
+    
     return(list(success = TRUE, data = result))
   }, error = function(e){
     return(list(success = FALSE, error = e$message))
